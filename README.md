@@ -20,15 +20,9 @@ Rails-load-stats is a simple `bash` script that processes a logfile of any Ruby 
 
 
 ### Usage:
-./analyze.sh logfile [sort-results]
+    ./analyze.sh logfile [sort-results]
 
-where (optional) sort-results can be:
-  2: sort by count
-  3: sort by min time
-  4: sort by max time
-  5: sort by avg time
-  6: sort by mean time
-  7: sort by sum time / percentage
+where (optional) sort-results can be a value from 2 to 7 determining column to sort the results by.
 
 ### Requirements:
 `bash` version >= 4
