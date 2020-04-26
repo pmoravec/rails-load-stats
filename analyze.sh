@@ -103,6 +103,7 @@ done
 
 echo > results.footer
 echo "results are in results.* files, individual requests per each type are in times.* files" >> results.footer
+echo "Be aware, next execution of the script overrides those files."
 
 # now, print all results.* files to stdout; if table should be sorted, sort it
 echo

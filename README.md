@@ -1,6 +1,6 @@
 # rails-load-stats
 
-Rails-load-stats is a simple `bash` script that processes a logfile of any Ruby on Rails app to analyze where the load to the app comes from. It produces statistics with how many requests against each method were raised, how much (min/max/avg/sum) time these took, and what percentage of overall execution time was spent by processing the different types of requests. Example output:
+Rails-load-stats is a simple `bash` script that processes a logfile of any Ruby on Rails app to analyze where the load to the app comes from. It produces statistics with how many requests against each method were raised, how much (min/max/avg/sum) time these took, and what percentage of overall execution time was spent by processing the different types of requests. Example output (from a [foreman](https://theforeman.org/) deployment):
 
     there were 3196 requests taking 782320 ms (i.e. 0.22 hours, i.e. 0.01 days) in summary
     
@@ -18,11 +18,12 @@ Rails-load-stats is a simple `bash` script that processes a logfile of any Ruby 
     ..
     ..ontroller#puppet_environment_for_content_view	1	30	30	30	30	30		0.00 %
 
+Results are stored in `results.*` files, individual requests per each type are available in `times.*` files. Method names have stripped class namespaces - just in the table.
 
 ### Usage:
     ./analyze.sh logfile [sort-results]
 
-where (optional) sort-results can be a value from 2 to 7 determining column to sort the results by.
+where (optional) sort-results can be a value from 2 to 7 determining column to sort the results by. By default, results are sorted alhpabeticaly by method names.
 
 ### Requirements:
 `bash` version >= 4
