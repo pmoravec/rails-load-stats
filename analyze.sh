@@ -50,6 +50,13 @@ rm -f times.* results.*
 echo "$(date): extracting relevant data from input file '${f}'.."
 grep -e Processing -e Completed $f | cut -d'|' -f3 | sed "s/\] Completed / c in /g" | sed "s/\] Processing by / p in  in /g" | awk -F " in " '{ print $1" "$3 }' | awk '{ print $1" "$2" "$3 }' > processing.completed.extracted
 
+# Check if there are any valid results by looking at processing.completed.extracted or exit
+if [ ! -s processing.completed.extracted ]; then
+    echo "$(date): No valid requests or responses found in log file '${f}', exiting"
+    rm -f processing.completed.extracted
+    exit 3
+fi
+
 # process those extracted data as tripples ($req $act $typeortime) as follows:
 # - if act is "p" / Processing, memorize the type of request in a "requests" hash
 # - if act is "c" / Completed, fetch from "requests" hash the type and append the time (without "ms") to the relevant file
