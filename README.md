@@ -1,6 +1,10 @@
 # rails-load-stats
 
-Rails-load-stats is a simple `bash` script that processes a logfile of any Ruby on Rails app to analyze where the load to the app comes from. It produces statistics with how many requests against each method were raised, how much (min/max/avg/sum) time these took, and what percentage of overall execution time was spent by processing the different types of requests. Example output (from a [foreman](https://theforeman.org/) deployment):
+Rails-load-stats is a simple `bash` script that processes a logfile of any Ruby on Rails app to analyze where the load to the app comes from. It produces statistics about:
+- Particular requests: how many requests against each method were raised, how much (min/max/avg/sum) time these took, and what percentage of overall execution time was spent by processing the different types of requests.
+- Level of concurrency: how many requests were processed in parallel, what was the max/avg/mean/90%percentile. This helps with scaling your app.
+
+Example output (from a [foreman](https://theforeman.org/) deployment):
 
     there were 3196 requests taking 782320 ms (i.e. 0.22 hours, i.e. 0.01 days) in summary
     
@@ -18,7 +22,13 @@ Rails-load-stats is a simple `bash` script that processes a logfile of any Ruby 
     ..
     ..ontroller#puppet_environment_for_content_view	1	30	30	30	30	30		0.00 %
 
-Results are stored in `results.*` files, individual requests per each type are available in `times.*` files. Method names have stripped class namespaces - just in the table.
+    concurrent requests:
+    - MAX: 60 when processing request with ID 0b5552e0
+    - AVG: 29
+    - MEAN: 33
+    - 90%PERCENTILE: 50
+
+Results are stored in `results.*` files, individual requests per each type are available in `times.*` files, numbers of concurrently processed requests at a time in `concur-requests.txt`. Method names have stripped class namespaces - just in the table.
 
 ### Usage:
     ./analyze.sh logfile [sort-results]
