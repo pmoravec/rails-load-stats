@@ -35,7 +35,7 @@ if [ $# -gt 1 ]; then
 fi
 
 # remove auxiliary files
-rm -f times.* results.*
+rm -f times.* results.* concur-requests.*
 
 # parse input file to extract from lines like:
 #
@@ -62,15 +62,35 @@ fi
 # - if act is "c" / Completed, fetch from "requests" hash the type and append the time (without "ms") to the relevant file
 echo "$(date): processing the extracted data (this can take a while).."
 declare -A requests
+# also count number of pending requests for stats about level of concurrency
+pending=0
+maxpending=0
 cat processing.completed.extracted | while read req act typeortime; do
 	if [ "$act" == "p" ]; then
 		requests[${req}]="${typeortime}"
+		pending=$((pending+1))
+		echo $pending >> concur-requests.txt
+		if [ ${pending} -gt ${maxpending} ]; then
+			maxpending=${pending}
+			echo ${req} > concur-requests.maxpending.id.txt
+		fi
 	else
 		type=${requests[${req}]}
 		unset requests[${req}]
 		# if $type is empty, we didnt hash the request that was logged in a previous (missing) logfile - ignore this
 		if [ -n "${type}" ]; then
 			echo ${typeortime%ms} >> times.${type}
+			pending=$((pending-1))
+			echo $pending >> concur-requests.txt
+		else # increment all past concurrency levels by one
+			maxpending=$((maxpending+1))
+			if [ -f concur-requests.txt ]; then
+				rm -f concur-requests.txt.aux
+				for i in $(cat concur-requests.txt); do
+					echo $((i+1)) >> concur-requests.txt.aux
+				done
+				mv concur-requests.txt.aux concur-requests.txt
+			fi
 		fi
 	fi
 done
@@ -107,14 +127,28 @@ for type in $(ls times.* -1 | cut -d'.' -f2); do
         fi
         echo -e "${outtype}\t${count}\t${min}\t${max}\t${avg}\t${mean}\t${sum}\t${percents}" >> results.table
 done
+echo >> results.table
+
+# count stats from concurrent requests processed
+sort -n concur-requests.txt > concur-requests.sorted.txt
+read sumconcur countconcur < <(awk '{ sum+=$1; c+=1 } END { print sum" "c }' concur-requests.txt)
+echo "concurrent requests:" > results.concur
+echo "- MAX: $(tail -n1 concur-requests.sorted.txt) when processing request with ID $(cat concur-requests.maxpending.id.txt)" >> results.concur
+echo "- AVG: $(echo $sumconcur $countconcur | awk '{ printf "%.0f", $1/$2 }')" >> results.concur
+echo "- MEAN: $(head -n $(((countconcur+1)/2)) concur-requests.sorted.txt | tail -n1)" >> results.concur
+echo "- 90%PERCENTILE: $(tail -n $((countconcur/10)) concur-requests.sorted.txt | head -n1)" >> results.concur
+echo >> results.concur
+rm -f concur-requests.maxpending.id.txt
 
 echo > results.footer
-echo "results are in results.* files, individual requests per each type are in times.* files" >> results.footer
-echo "Be aware, next execution of the script overrides those files."
+echo "results are in results.* files, individual requests per each type are in times.* files, concurrent requests in concur-requests.txt file" >> results.footer
+echo >> results.footer
+echo "Be aware, next execution of the script overrides those files." >> results.footer
+echo >> results.footer
 
 # now, print all results.* files to stdout; if table should be sorted, sort it
 echo
-for i in summary header table footer; do
+for i in summary header table concur footer; do
 	if [ "$i" == "table" -a "$sortresults" ]; then
 		cmd="sort -nrk ${sortresults}"
 	else
