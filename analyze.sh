@@ -100,7 +100,7 @@ rm -f processing.completed.extracted
 
 # write the times to corresponding times.* files
 for key in "${!times[@]}"; do
-        echo ${times[$key]} | tr ',' '\n' > times.${key}
+        echo ${times[$key]} | tr ',' '\n' | grep -v ^$ > times.${key}
 done
 
 # each file times.${type} now contains response times of requests of the type ${type}; let do some stats over them
