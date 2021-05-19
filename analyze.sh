@@ -35,7 +35,7 @@ if [ $# -gt 1 ]; then
 fi
 
 # remove auxiliary files
-rm -f times.* results.* concur-requests.*
+rm -f times.* results.*
 
 # parse input file to extract from lines like:
 #
@@ -66,14 +66,14 @@ declare -A requests
 declare -A times
 # also count number of pending requests for stats about level of concurrency
 pending=0
+sumpending=0
+countpending=0
 maxpending=0
 maxpendingid=""
-pendinglist=()
 while read req act typeortime; do
 	if [ "$act" == "p" ]; then
 		requests[${req}]="${typeortime}"
 		pending=$((pending+1))
-		pendinglist+=($pending)
 		if [ ${pending} -gt ${maxpending} ]; then
 			maxpending=${pending}
 			maxpendingid=${req}
@@ -84,17 +84,13 @@ while read req act typeortime; do
 		if [ -n "${type}" ]; then
 			unset requests[${req}]
 			times[${type}]+="${typeortime%ms},"
-#			echo ${typeortime%ms} >> times.${type}
 			pending=$((pending-1))
-			pendinglist+=($pending)
-		else # increment all past concurrency levels by one
+		else # we had another concurrent request until now, increment max pending requests counter
 			maxpending=$((maxpending+1))
-#			echo "$(date): ${req} ${act} ${typeortime}: bumping pendinglist of size ${#pendinglist[@]}"
-			for i in ${!pendinglist[@]}; do
-				pendinglist[$i]=$((pendinglist[$i]+1))
-			done
 		fi
 	fi
+	countpending=$((countpending+1))
+	sumpending=$((sumpending+pending))
 done < <(cat processing.completed.extracted)
 rm -f processing.completed.extracted
 
@@ -137,18 +133,13 @@ done
 echo >> results.table
 
 # count stats from concurrent requests processed
-echo ${pendinglist[@]} | tr ' ' '\n' > concur-requests.txt
-sort -n concur-requests.txt > concur-requests.sorted.txt
-read sumconcur countconcur < <(awk '{ sum+=$1; c+=1 } END { print sum" "c }' concur-requests.txt)
 echo "concurrent requests:" > results.concur
-echo "- MAX: $(tail -n1 concur-requests.sorted.txt) when processing request with ID '${maxpendingid}'" >> results.concur
-echo "- AVG: $(echo $sumconcur $countconcur | awk '{ printf "%.0f", $1/$2 }')" >> results.concur
-echo "- MEAN: $(head -n $(((countconcur+1)/2)) concur-requests.sorted.txt | tail -n1)" >> results.concur
-echo "- 90%PERCENTILE: $(tail -n $((countconcur/10)) concur-requests.sorted.txt | head -n1)" >> results.concur
+echo "- MAX: ${maxpending} when processing request with ID '${maxpendingid}'" >> results.concur
+echo "- AVG: $(echo $sumpending $countpending | awk '{ printf "%.0f", $1/$2 }')" >> results.concur
 echo >> results.concur
 
 echo > results.footer
-echo "results are in results.* files, individual requests per each type are in times.* files, concurrent requests in concur-requests.txt file" >> results.footer
+echo "results are in results.* files, individual requests per each type are in times.* files" >> results.footer
 echo >> results.footer
 echo "Be aware, next execution of the script overrides those files." >> results.footer
 echo >> results.footer
